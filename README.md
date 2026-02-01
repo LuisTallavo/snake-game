@@ -1,10 +1,14 @@
-# Snake Game
+# Snake Game!
 
-A classic Snake game built with Python and Pygame, playable both on desktop and in the browser via WebAssembly.
+I made this game as a kid when participating in @RealProgramming4Kids camp. Decided to host it here for memories.
+
+Built in Python with Pygame library and hosted on the browser with pygbag
 
 ## Play Online
 
-Play the game directly in your browser at: `https://<username>.github.io/SnakeGame/`
+[Play the game here](https://luistallavo.github.io/snake-game/)
+
+<img width="1309" height="831" alt="image" src="https://github.com/user-attachments/assets/11a49416-797e-4653-af32-73eb2fa79906" />
 
 ## How to Play
 
@@ -18,49 +22,7 @@ Play the game directly in your browser at: `https://<username>.github.io/SnakeGa
 4. Eat the red food to grow and score points
 5. Avoid hitting the walls or yourself!
 
-## Run Locally
-
-### Prerequisites
-- Python 3.8+
-- Pygame
-
-### Installation
-
-```bash
-pip install -r requirements.txt
-python main.py
-```
-
-### Test Web Build Locally
-
-```bash
-pip install pygbag
-pygbag .
-```
-
-Then open `http://localhost:8000` in your browser.
-
-## Project Structure
-
-```
-SnakeGame/
-├── main.py              # Main game entry point
-├── src/
-│   ├── __init__.py
-│   ├── snake.py         # Snake class
-│   ├── food.py          # Food class
-│   └── gameboard.py     # Gameboard class
-├── assets/
-│   ├── snakescreen.png  # Title screen image
-│   ├── Snakesong.ogg    # Background music (web)
-│   └── Snakesong.wav    # Background music (desktop)
-└── Highscores.txt       # Local high scores
-```
-
-## Credits
-
-Created by Luis Tallavo
-
-## License
-
-This project is open source and available for educational purposes.
+## Tech Stack
+* Python
+* Pygame
+* Pygbag (WebAssembly compilation for browser)

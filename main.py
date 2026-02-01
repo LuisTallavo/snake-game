@@ -8,16 +8,20 @@ from src.food import Food
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GRAY = (100, 100, 100)
+GREEN = (0, 255, 0)
+
+MOVE_INTERVAL = 100  # milliseconds between moves
 
 # Global variables
 done = False
 started = False
 score = 0
 name = ""
-delay = 0
 size = (900, 600)
 namelist = [""]
 scorelist = ["0"]
+last_move_time = 0
 
 # Initialize pygame
 pygame.init()
@@ -42,6 +46,7 @@ realfood = Food()
 
 scorefont = pygame.font.Font('freesansbold.ttf', 20)
 HSfont = pygame.font.Font('freesansbold.ttf', 20)
+buttonfont = pygame.font.Font('freesansbold.ttf', 16)
 
 # Load high scores
 try:
@@ -54,6 +59,9 @@ except:
 
 screen = None
 
+home_button_rect = pygame.Rect(710, 320, 65, 30)
+quit_button_rect = pygame.Rect(785, 320, 55, 30)
+
 
 def drawscreen():
     screen.fill(BLACK)
@@ -62,14 +70,32 @@ def drawscreen():
     realfood.draw(screen)
     scoretext = scorefont.render("Score: " + str(score), 1, WHITE)
     screen.blit(scoretext, (570, 75))
-    for i in range(1):
-        hsnametext = HSfont.render(str(namelist[i]), 1, WHITE)
-        hsscoretext = HSfont.render(str(scorelist[i]), 1, WHITE)
-        screen.blit(hsnametext, (710, i * 25 + 125))
-        screen.blit(hsscoretext, (800, i * 25 + 125))
+    
+    # High scores display
     pygame.draw.rect(screen, WHITE, [700, 100, 150, 200], 1)
     highscoretext = HSfont.render("High Scores", 1, WHITE)
     screen.blit(highscoretext, (710, 75))
+    
+    # Display high score entries
+    for i in range(len(namelist)):
+        if namelist[i]:
+            hsnametext = HSfont.render(str(namelist[i])[:8], 1, WHITE)
+            hsscoretext = HSfont.render(str(scorelist[i]), 1, WHITE)
+            screen.blit(hsnametext, (710, i * 25 + 125))
+            screen.blit(hsscoretext, (800, i * 25 + 125))
+    
+    # Draw Home button
+    pygame.draw.rect(screen, GRAY, home_button_rect)
+    pygame.draw.rect(screen, WHITE, home_button_rect, 2)
+    home_text = buttonfont.render("Home", 1, WHITE)
+    screen.blit(home_text, (home_button_rect.x + 10, home_button_rect.y + 7))
+    
+    # Draw Quit button
+    pygame.draw.rect(screen, GRAY, quit_button_rect)
+    pygame.draw.rect(screen, WHITE, quit_button_rect, 2)
+    quit_text = buttonfont.render("Quit", 1, WHITE)
+    screen.blit(quit_text, (quit_button_rect.x + 10, quit_button_rect.y + 7))
+    
     pygame.display.flip()
 
 
@@ -93,59 +119,55 @@ def KeyCheck(event):
 
 def checkHighScores():
     global scorelist, namelist
-    newhighscore = False
-    tempnamelist = [""]
-    tempscorelist = [0]
-    for i in range(1):
-        try:
-            current_score = int(scorelist[i]) if scorelist[i] else 0
-        except:
-            current_score = 0
-        if score > current_score and not newhighscore:
-            newhighscore = True
-            tempscorelist[i] = score
-            tempnamelist[i] = name
-        elif newhighscore:
-            tempscorelist[i] = scorelist[i - 1]
-            tempnamelist[i] = namelist[i - 1]
-        else:
-            tempscorelist[i] = scorelist[i]
-            tempnamelist[i] = namelist[i]
+    
+    # Get current high score as int
+    try:
+        current_high = int(scorelist[0]) if scorelist[0] else 0
+    except (ValueError, IndexError):
+        current_high = 0
+    
+    # Check if we beat the high score
+    if score > current_high:
+        namelist[0] = name
+        scorelist[0] = str(score)
+        
+        if sys.platform != "emscripten":
+            try:
+                with open("Highscores.txt", "w") as HSfile:
+                    HSfile.write(str(namelist[0]) + '\n')
+                    HSfile.write(str(scorelist[0]) + '\n')
+            except:
+                pass
 
-    for i in range(1):
-        scorelist[i] = tempscorelist[i]
-        namelist[i] = tempnamelist[i]
-
-    # Only write high scores on desktop (not available in web)
-    if sys.platform != "emscripten":
-        try:
-            with open("Highscores.txt", "w") as HSfile:
-                for i in range(1):
-                    HSfile.write(str(namelist[i]) + '\n')
-                for i in range(1):
-                    HSfile.write(str(scorelist[i]) + '\n')
-        except:
-            pass
+def reset_game():
+    """Reset the game state for a new game or returning home."""
+    global gamescreen, playersnake, realfood, score
+    gamescreen = Gameboard(WHITE, 20)
+    playersnake = Snake()
+    realfood = Food()
+    score = 0
 
 
-async def main():
-    global done, started, score, name, delay, screen
-    global gamescreen, playersnake, realfood
-
-    # Title screen loop
-    while not started:
-        startpic = pygame.image.load("assets/snakescreen.png")
+async def title_screen():
+    """Handle the title screen and return when player is ready to start."""
+    global done, name
+    
+    startpic = pygame.image.load("assets/snakescreen.png")
+    
+    while True:
+        titlescreen.blit(startpic, (-75, -20))
         enterednametext = scorefont.render("Please Type in Your Name", 1, WHITE)
         nametext = scorefont.render(name, 1, WHITE)
+        instructiontext = scorefont.render("Press SPACE to start", 1, WHITE)
         titlescreen.blit(enterednametext, (500, 200))
         titlescreen.blit(nametext, (500, 250))
+        titlescreen.blit(instructiontext, (500, 300))
         pygame.display.flip()
-        titlescreen.blit(startpic, (-75, -20))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-                started = True
+                return False
             if event.type == pygame.KEYDOWN:
                 if event.key >= 33 and event.key <= 126 and len(name) < 10:
                     name = name + chr(event.key)
@@ -154,23 +176,39 @@ async def main():
                 if event.key == pygame.K_SPACE:
                     if name == "":
                         name = "Player1"
-                    started = True
+                    return True
 
         await asyncio.sleep(0)
 
-    screen = pygame.display.set_mode(size)
 
-    # Main game loop
+async def game_loop():
+    """Main game loop. Returns 'home' to go back to title, 'quit' to exit."""
+    global done, score, last_move_time
+    global gamescreen, playersnake, realfood, screen
+    
+    clock = pygame.time.Clock()
+    last_move_time = pygame.time.get_ticks()
+    
     while not done:
+        clock.tick(60)
+        current_time = pygame.time.get_ticks()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                done = True
+                return 'quit'
             if event.type == pygame.KEYDOWN:
                 KeyCheck(event)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if home_button_rect.collidepoint(mouse_pos):
+                    reset_game()
+                    return 'home'
+                if quit_button_rect.collidepoint(mouse_pos):
+                    return 'quit'
 
-        delay += 1
-        if delay >= 10:
-            delay = 0
+        # Time-based movement for smooth animation
+        if current_time - last_move_time >= MOVE_INTERVAL:
+            last_move_time = current_time
             playersnake.updatePosition()
             if playersnake.CanSnakeMove():
                 playersnake.movesnake()
@@ -182,16 +220,35 @@ async def main():
             playersnake.fullsnake.append(playersnake.tail[-playersnake.total])
 
         if gamescreen.checkDeath(playersnake):
-            gamescreen = Gameboard(WHITE, 20)
-            playersnake = Snake()
-            realfood = Food()
             checkHighScores()
-            score = 0
+            reset_game()
 
         drawscreen()
 
         await asyncio.sleep(0)
+    
+    return 'quit'
 
+
+async def main():
+    global done, screen
+    
+    while not done:
+        # Show title screen
+        should_start = await title_screen()
+        if not should_start:
+            break
+        
+        # Setup game screen
+        screen = pygame.display.set_mode(size)
+        reset_game()
+        
+        # Run game loop
+        result = await game_loop()
+        
+        if result == 'quit':
+            break
+        # If result == 'home', loop continues back to title screen
 
 # Entry point
 asyncio.run(main())
